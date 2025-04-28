@@ -91,7 +91,7 @@ def create_object():
         objects.append([x, y, image, category])  # Tambahkan kategori ke setiap objek
 
 def reset_game():
-    global score, start_time, objects, object_x, object_speed, current_category, last_category_change
+    global score, start_time, objects, object_x, object_speed, current_category, last_category_change, game_over
     score = 0
     start_time = time.time()
     last_category_change = start_time
@@ -100,6 +100,7 @@ def reset_game():
     object_speed = 5
     current_category = random.choice(list(objects_categories.keys()))
     create_object()
+    game_over = False  # Pastikan game_over di-reset
 
 running = True
 game_over = False
@@ -111,7 +112,7 @@ while running:
     if not ret:
         break
 
-    frame = cv2.flip(frame, 1)
+    # Jangan cermin tampilan webcam
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     results = pose.process(frame_rgb)
@@ -140,9 +141,10 @@ while running:
             running = False
         elif game_over and event.type == pygame.MOUSEBUTTONDOWN:
             mouse_x, mouse_y = pygame.mouse.get_pos()
-            if screen_width // 2 - 50 <= mouse_x <= screen_width // 2 + 50 and screen_height // 2 <= mouse_y <= screen_height // 2 + 40:
+            # Tombol "Play Again"
+            if screen_width // 2 - 50 <= mouse_x <= screen_width // 2 + 50 and screen_height // 2 + 20 <= mouse_y <= screen_height // 2 + 60:
                 reset_game()
-                game_over = False
+            # Tombol "Quit Game"
             elif screen_width // 2 - 50 <= mouse_x <= screen_width // 2 + 50 and screen_height // 2 + 70 <= mouse_y <= screen_height // 2 + 110:
                 running = False
 
@@ -165,6 +167,13 @@ while running:
         # Tampilkan latar belakang
         screen.blit(background, (0, 0))
 
+       # Tampilkan webcam feed di pojok kiri atas
+        webcam_surface = pygame.surfarray.make_surface(frame_rgb)
+        webcam_surface = pygame.transform.rotate(webcam_surface, -90)  
+        webcam_surface = pygame.transform.flip(webcam_surface, True, False)  
+        webcam_surface = pygame.transform.scale(webcam_surface, (250, 150)) 
+        screen.blit(webcam_surface, (10, 10)) 
+
         # Tampilkan tong sampah sesuai kategori saat ini
         screen.blit(trash_bins[current_category], (object_x, object_y))
 
@@ -173,7 +182,7 @@ while running:
             screen.blit(obj[2], (obj[0], obj[1]))
 
         score_text = font.render(f"Score: {score}", True, RED)
-        screen.blit(score_text, (10, 10))
+        screen.blit(score_text, (10, 220))
 
         timer_text = font.render(f"Time: {time_left}s", True, RED)
         screen.blit(timer_text, (screen_width - 150, 10))
